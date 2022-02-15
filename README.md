@@ -17,8 +17,10 @@ This api allows send money trhougth transactions
 - [Laravel Sail] - Laravel Sail is a light-weight command-line interface for interacting with Laravel's default Docker development environment
 - [PHP] - PHP is a popular general-purpose scripting language that is especially suited to web development.
 - [MySQL] - MySQL Database Service is a fully managed database service to deploy cloud-native applications.
-- 
+
 ## Installation
+
+Wallet is available install with Docker based or Laravel Server
 
 #### 1. With Docker
 Wallet Requires [Docker](https://www.docker.com/) e [Docker-compose](https://docs.docker.com/compose/install/) to run.
@@ -110,14 +112,14 @@ the project will be available in ```localhost:8000/api``` you will see:
 POST - localhost:8000/api/v1/users
 ```
 ###### Payload:
-#
+
 ```sh
 {
     "name": "Taylor",
     "email": "taylor@email.com",
     "cpf_cnpj": "03.730.973/00101-71",
     "phone": "(83)9999-9999",
-    "user_type": "USER" //
+    "user_type": "USER"
 }
 ```
 ** All fields are required
@@ -131,7 +133,7 @@ POST - localhost:8000/api/v1/users
 POST - localhost:8000/api/v1/transactions
 ```
 ###### Payload:
-#
+
 ```sh
 {
 	"amount": 10.00,
@@ -153,7 +155,7 @@ run tests with
 
 ```php artisan test```
 
-this test are powered by [PHP UNIT](https://phpunit.readthedocs.io/en/9.5/)
+tests are powered by [PHP UNIT](https://phpunit.readthedocs.io/en/9.5/)
 
 ## License
 
