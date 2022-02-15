@@ -155,7 +155,15 @@ run tests with
 
 ```php artisan test```
 
+> Is recomended create another database to run tests
+> configure the ```phpunit.xml```
+
+```sh
+<server name="DB_CONNECTION" value="mysql"/>
+<server name="DB_DATABASE" value="wallet_test"/>
+```
 tests are powered by [PHP UNIT](https://phpunit.readthedocs.io/en/9.5/)
+
 
 ## License
 
