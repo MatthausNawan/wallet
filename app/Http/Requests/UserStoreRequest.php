@@ -25,7 +25,6 @@ class UserStoreRequest extends FormRequest
     {
         return [
             'name' => 'required|string|min:3|max:100',
-            'last_name' => 'required|string|min:3|max:100',
             'cpf_cnpj' => 'required|string|unique:users,cpf_cnpj',
             'phone' => 'required|string|min:3|max:100',
             'email' => 'required|email|unique:users,email|',

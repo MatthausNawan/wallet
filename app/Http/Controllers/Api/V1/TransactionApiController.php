@@ -20,21 +20,20 @@ class TransactionApiController extends Controller
 
     public function store(StoreTransactionRequest $request)
     {
+        try {
 
-        // try {
+            $this->transactionService->newUserTransaction($request->all());
 
-        $this->transactionService->newUserTransaction($request->all());
+            return response()->json([
+                'success' => true,
+                'message' => "success",
+            ], Response::HTTP_OK);
+        } catch (Exception $e) {
 
-        return response()->json([
-            'success' => true,
-            'message' => "Sua transação foi solicitada, aguarde e iremos autorizar",
-        ], Response::HTTP_OK);
-        // } catch (Exception $e) {
-
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => $e->getMessage()
-        //     ], Response::HTTP_BAD_REQUEST);
-        // }
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], Response::HTTP_BAD_REQUEST);
+        }
     }
 }

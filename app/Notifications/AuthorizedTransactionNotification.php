@@ -77,10 +77,10 @@ class AuthorizedTransactionNotification extends Notification implements ShouldQu
             $response = Http::acceptJson()->get($notificationUrl);
 
             if ($response->ok()) {
-                Log::info("Notification was sent");
+                Log::info("notification was sent");
             }
         } catch (Exception $e) {
-            Log::alert("Notification service is unavailable");
+            Log::alert("external notification service is unavailable");
         }
     }
 }

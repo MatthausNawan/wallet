@@ -2,13 +2,16 @@
 
 namespace App\Services;
 
-use App\Jobs\AuthorizeTransaction;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Str;
 use App\Notifications\AuthorizedTransactionNotification;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
 
 class TransactionService
 {
@@ -29,21 +32,35 @@ class TransactionService
         $this->transactionRepository = $transaction;
     }
 
+    /**
+     * Set the Payer and Payee and check rules
+     *
+     * @param array $payload
+     * @return void
+     */
     public function newUserTransaction(array $payload)
     {
         $this->payer = $this->userRepository->find($payload['payer']);
         $this->payee = $this->userRepository->find($payload['payee']);
         $this->amount = $payload['amount'];
 
-        if ($this->checkIfPayerAvailableToTransfer() && $this->checkIfPayerHasBalance()) {
+        $this->checkIfPayerAvailableToTransfer();
+        $this->checkIfPayerHasBalance();
 
-            $this->createTransaction();
-        }
+        return  $this->createTransaction();
     }
 
-
+    /**
+     * Create User Transaction
+     *
+     * @return void
+     */
     public function createTransaction()
     {
+        DB::beginTransaction();
+
+        $this->payer->wallet->subtractBalance($this->amount);
+
         $transaction = $this->transactionRepository->create(
             [
                 'payer_id' => $this->payer->id,
@@ -53,55 +70,74 @@ class TransactionService
             ]
         );
 
-        $this->payer->wallet->subtractBalance($this->amount);
+        if (!$this->authorizeTransaction()) {
+            DB::rollBack();
 
-        return AuthorizeTransaction::dispatch($transaction, $this->payer);
+            abort(400, "transaction cancelled");
+        } else {
+
+            $this->payee->wallet->addBalance($transaction->amount);
+
+            $this->payer->notify(new AuthorizedTransactionNotification($transaction, $this->payer));
+
+            DB::commit();
+        }
     }
 
-
+    /**
+     * Check if payer is a user type available to transfer
+     *
+     * @return void
+     */
     public function checkIfPayerAvailableToTransfer()
     {
         if ($this->payer->user_type == User::TYPE_STORE) {
-            throw new Exception('Você não pode efetuar essa transação.');
+            abort(400, 'you cannot perform this operation');
         }
         return true;
     }
 
 
+    /**
+     * Check if payer have sufficient balance
+     *
+     * @return bool
+     */
     public function checkIfPayerHasBalance()
     {
-        if ($this->payer->wallet->amount >= $this->amount) {
-            return true;
+        if ($this->payer->wallet->amount < $this->amount) {
+            abort(400, 'insuficient balance');
         }
-
-        throw new Exception('Você não tem saldo suficiente');
+        return true;
     }
 
-    public static function commitTransaction(Transaction $transaction, User $user)
+    /**
+     * Authorize transaction
+     *
+     * @return bool
+     */
+    private function authorizeTransaction(): bool
     {
-        Log::info('handle commit');
-        Log::info(json_encode($transaction));
-        Log::info(json_encode($user));
+        $authUrl = env('AUTHORIZATION_URL');
 
-        $transaction->is_authorized = true;
-        $transaction->save();
+        if (!Config::get('transactions.force_fails')) {
+            try {
+                $response = Http::acceptJson()->get($authUrl);
 
-        $sender = User::find($transaction->payee_id);
-        $sender->wallet->addBalance($transaction->amount);
+                Log::info($response->json());
 
-        $user->notify(new AuthorizedTransactionNotification($transaction, $user));
-    }
+                if ($response->status() == Response::HTTP_OK && $response->object()->message == Transaction::AUTH_MESSAGE_SUCCESS) {
 
+                    return true;
+                }
 
-    public static function rollbackTransaction(Transaction $transaction, User $user)
-    {
-        Log::info('handle rollback');
-        Log::info(json_encode($transaction));
-        Log::info(json_encode($user));
+                return false;
+            } catch (Exception $e) {
 
-        $transaction->is_authorized = false;
-        $transaction->save();
-
-        $user->wallet->addBalance($transaction->amount);
+                Log::alert('Unable to Authorize Transaction: ' . $e->getMessage());
+            }
+        } else {
+            return false;
+        }
     }
 }

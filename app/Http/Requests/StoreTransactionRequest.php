@@ -24,7 +24,7 @@ class StoreTransactionRequest extends FormRequest
     public function rules()
     {
         return [
-            'amount' => 'required|numeric',
+            'amount' => 'required|numeric|min:1',
             'payer' => 'required|exists:users,id',
             'payee' => 'required|exists:users,id',
         ];
